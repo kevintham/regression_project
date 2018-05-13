@@ -1,5 +1,5 @@
 ---
-title: "MPG comparisons between car transmission types"
+title: "Efficiency comparisons between car transmission types"
 author: "Kevin Tham"
 date: "May 12, 2018"
 output: 
@@ -13,12 +13,6 @@ rm(list=ls())
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r, message=FALSE}
-if (!require("pacman"))
-  install.packages("pacman", repos = "http://cran.us.r-project.org")
-pacman::p_load(knitr, dplyr, ggplot2, GGally, tidyr, grid, gridExtra, car)
-```
-
 ## Overview
 
 In this report we will explore the relationship between a set of variables and miles per gallon (MPG) from a data set of a collection of cars. Specifically, we would like to answer the following two questions:
@@ -30,7 +24,15 @@ Using the dataset `mtcars` we shall embark on a statistical study to address the
 
 ## Exploratary Data Analysis
 
-We begin the study by conducting some exploratory data analysis. First we import and examine the dataset:
+We begin the study by conducting some exploratory data analysis. First we load in required libraries:
+
+```{r, message=FALSE}
+if (!require("pacman"))
+  install.packages("pacman", repos = "http://cran.us.r-project.org")
+pacman::p_load(knitr, dplyr, ggplot2, GGally, tidyr, grid, gridExtra, car)
+```
+
+Next we import and examine the dataset:
 
 ```{r}
 data(mtcars)
@@ -49,20 +51,18 @@ mtcars$gear <- ordered(mtcars$gear)
 
 We can make a direct comparison between the transmission type and MPG with a boxplot:
 
-```{r, fig.align='center', results='hold'}
-ggplot(mtcars, aes(x=am,y=mpg)) +
-  geom_boxplot()
-```
 
-From the boxplot we can conclude that from the dataset, cars with a manual transmission have a larger median MPG than cars with an automatic transmission. The MPG for cars with a manual transmission also appear to have a larger spread between the first and third quartiles.
 
-In order to visualise the relationship of MPG and transmission type with the other variables we can utilise a pairplot:
+From the boxplot in Figure \ref{fig:box} we can conclude that from the dataset, cars with a manual transmission have a larger median MPG than cars with an automatic transmission. The MPG for cars with a manual transmission also appear to have a larger spread between the first and third quartiles.
 
-```{r, fig.align='center', fig.width=11, fig.height=11, results='hold'}
-ggpairs(mtcars, lower=list(combo=wrap('facethist',binwidth=0.8)))
-#ggpairs(select(mtcars, mpg, cyl, disp, hp, drat, wt, qsec, am), 
-#        lower=list(combo=wrap('facethist',binwidth=0.8)))
-```
+In order to visualise the relationship of MPG and transmission type with the other variables we can utilise a pairplot, shown in Figure \ref{fig:pairs}. From the pairplot we can observe that many of the variables are fairly correlated with each other. This suggests that it will be difficult to intepret linear regression results to answer question 2 due to confounding variables.
+
+
+## Statistical Analysis
+
+### Quantifying the MPG difference between transmission types
+
+For this section we will examine a linear model of MPG `mpg` regressed on transmission type `am` in order to answer question 1. Since we are only concerned with the bulk difference between automatic and manual transmissions, we will not consider other variables here. 
 
 ```{r}
 fit1 <- lm(mpg ~ am, data=mtcars)
@@ -72,4 +72,15 @@ fit2 <- lm(mpg ~ ., data=mtcars[, sample(1:11)])
 summary(fit2)
 anova(fit2)
 vif(fit2)
+```
+
+## Appendix
+
+```{r, fig.align='center', results='hold', fig.cap='\\label{fig:box}Box plot of MPG against transmission type.'}
+ggplot(mtcars, aes(x=am,y=mpg)) +
+  geom_boxplot()
+```
+
+```{r, fig.align='center', fig.width=11, fig.height=11, results='hold', fig.cap='\\label{fig:pairs}Pair plot of variables from mtcars dataset.'}
+ggpairs(mtcars, lower=list(combo=wrap('facethist',binwidth=0.8)))
 ```
