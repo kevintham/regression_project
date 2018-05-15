@@ -27,7 +27,7 @@ We begin the study by conducting some exploratory data analysis. First we load i
 ```r
 if (!require("pacman"))
   install.packages("pacman", repos = "http://cran.us.r-project.org")
-pacman::p_load(knitr, dplyr, ggplot2, GGally, tidyr, grid, gridExtra, car)
+pacman::p_load(knitr, dplyr, ggplot2, GGally, tidyr, grid, gridExtra, car, broom, tibble)
 ```
 
 Next we import and examine the dataset:
@@ -83,101 +83,79 @@ We can make a direct comparison between the transmission type and MPG with a box
 
 From the boxplot in Figure \ref{fig:box} we can conclude that from the dataset, cars with a manual transmission have a larger median MPG than cars with an automatic transmission. The MPG for cars with a manual transmission also appear to have a larger spread between the first and third quartiles.
 
-In order to visualise the relationship of MPG and transmission type with the other variables we can utilise a pairplot, shown in Figure \ref{fig:pairs}. From the pairplot we can observe that many of the variables are fairly correlated with each other. This suggests that it will be difficult to intepret linear regression results to answer question 2 due to confounding variables.
+In order to visualise the relationship of MPG and transmission type with the other variables we can utilise a pairplot, shown in Figure \ref{fig:pairs}. From the pairplot we can observe that many of the variables are fairly correlated with each other. 
+
+In particular, we can see how the nominal variables clearly separate some of the numerical variables. For example, the variable `cyl`, the number of cylinders in the car engine, splits the variables `disp`, `hp` and `drat` into distinct groups. The transmission type `am` also splits `disp`, `hp` and `drat` into two groups. Now if `am` is correlated with some of the other variables, which one actually is the variable responsible for the effect on MPG? Or are they all equally responsible?
+
+This suggests that it will be difficult to intepret linear regression results to answer question 2 due to confounding variables.
 
 
 ## Statistical Analysis
 
-### Quantifying the MPG difference between transmission types
+### Linear Model with a single variable
 
-For this section we will examine a linear model of MPG `mpg` regressed on transmission type `am` in order to answer question 1. Since we are only concerned with the bulk difference between automatic and manual transmissions, we will not consider other variables here. 
+If we are only concerned with the bulk effect of transmission type on MPG disregarding other values, we can simply regress `mpg` on `am` and examine the regression coefficients.
 
 
 ```r
 fit1 <- lm(mpg ~ am, data=mtcars)
-summary(fit1)
+tidy(fit1)
 ```
 
 ```
-## 
-## Call:
-## lm(formula = mpg ~ am, data = mtcars)
-## 
-## Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -9.3923 -3.0923 -0.2974  3.2439  9.5077 
-## 
-## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)    
-## (Intercept)   17.147      1.125  15.247 1.13e-15 ***
-## am manual      7.245      1.764   4.106 0.000285 ***
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-## 
-## Residual standard error: 4.902 on 30 degrees of freedom
-## Multiple R-squared:  0.3598,	Adjusted R-squared:  0.3385 
-## F-statistic: 16.86 on 1 and 30 DF,  p-value: 0.000285
+##          term  estimate std.error statistic      p.value
+## 1 (Intercept) 17.147368  1.124603 15.247492 1.133983e-15
+## 2   am manual  7.244939  1.764422  4.106127 2.850207e-04
 ```
 
 ```r
-fit2 <- lm(mpg ~ ., data=mtcars[, sample(1:11)])
-summary(fit2)
+glance(fit1)
 ```
 
 ```
-## 
-## Call:
-## lm(formula = mpg ~ ., data = mtcars[, sample(1:11)])
-## 
-## Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -3.2015 -1.2319  0.1033  1.1953  4.3085 
-## 
-## Coefficients:
-##             Estimate Std. Error t value Pr(>|t|)  
-## (Intercept) 15.73290   16.55442   0.950   0.3539  
-## hp          -0.05712    0.03175  -1.799   0.0879 .
-## vsstraight   2.48849    2.54015   0.980   0.3396  
-## carb         0.78703    1.03599   0.760   0.4568  
-## disp         0.01257    0.01774   0.708   0.4873  
-## qsec         0.76801    0.75222   1.021   0.3201  
-## gear.L       0.75275    2.14062   0.352   0.7290  
-## gear.Q       1.25046    1.80855   0.691   0.4977  
-## drat         0.73577    1.98461   0.371   0.7149  
-## am manual    3.34736    2.28948   1.462   0.1601  
-## wt          -3.54512    1.90895  -1.857   0.0789 .
-## cyl.L        2.16015    3.41523   0.633   0.5346  
-## cyl.Q        2.22647    1.43687   1.550   0.1378  
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-## 
-## Residual standard error: 2.616 on 19 degrees of freedom
-## Multiple R-squared:  0.8845,	Adjusted R-squared:  0.8116 
-## F-statistic: 12.13 on 12 and 19 DF,  p-value: 1.764e-06
+##   r.squared adj.r.squared    sigma statistic      p.value df    logLik
+## 1 0.3597989     0.3384589 4.902029  16.86028 0.0002850207  2 -95.24219
+##        AIC      BIC deviance df.residual
+## 1 196.4844 200.8816 720.8966          30
+```
+
+The coefficient of the linear model with only 1 variable is 7.25, with a p-value of 0.0002, indicating significance and that we should reject the null hypothesis. Therefore is a difference of 7.25 MPG between automatic and manual transmission types, neglecting adjustment for other variables. We note here that the R-squared value for this model is fairly low. This is expected as other variables that can explain the variance in MPG have not been included.
+
+### Linear Model with multiple variables
+
+
+
+```r
+fit2 <- lm(mpg ~ ., data=mtcars)
+tidy(fit2)
+```
+
+```
+##           term    estimate   std.error  statistic    p.value
+## 1  (Intercept) 15.73289830 16.55441672  0.9503747 0.35385548
+## 2        cyl.L  2.16015247  3.41523225  0.6325053 0.53459525
+## 3        cyl.Q  2.22646814  1.43686806  1.5495286 0.13775130
+## 4         disp  0.01256810  0.01774024  0.7084518 0.48726645
+## 5           hp -0.05711722  0.03174603 -1.7991927 0.08789210
+## 6         drat  0.73576811  1.98461241  0.3707364 0.71493502
+## 7           wt -3.54511861  1.90895437 -1.8570997 0.07886857
+## 8         qsec  0.76801287  0.75221895  1.0209964 0.32008122
+## 9   vsstraight  2.48849171  2.54014636  0.9796647 0.33956206
+## 10   am manual  3.34735713  2.28948094  1.4620594 0.16006890
+## 11      gear.L  0.75274795  2.14062152  0.3516492 0.72897110
+## 12      gear.Q  1.25045717  1.80854870  0.6914147 0.49766706
+## 13        carb  0.78702815  1.03599487  0.7596834 0.45676696
 ```
 
 ```r
-anova(fit2)
+glance(fit2)
 ```
 
 ```
-## Analysis of Variance Table
-## 
-## Response: mpg
-##           Df Sum Sq Mean Sq F value    Pr(>F)    
-## hp         1 678.37  678.37 99.1077 5.657e-09 ***
-## vs         1  24.94   24.94  3.6433   0.07152 .  
-## carb       1   3.53    3.53  0.5153   0.48160    
-## disp       1 165.07  165.07 24.1164 9.704e-05 ***
-## qsec       1  15.19   15.19  2.2185   0.15278    
-## gear       2  41.10   20.55  3.0021   0.07363 .  
-## drat       1   8.94    8.94  1.3066   0.26721    
-## am         1  17.47   17.47  2.5530   0.12658    
-## wt         1  24.94   24.94  3.6429   0.07153 .  
-## cyl        2  16.45    8.22  1.2016   0.32255    
-## Residuals 19 130.05    6.84                      
-## ---
-## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+##   r.squared adj.r.squared    sigma statistic      p.value df    logLik
+## 1 0.8845064      0.811563 2.616258  12.12594 1.764049e-06 13 -67.84112
+##        AIC      BIC deviance df.residual
+## 1 163.6822 184.2025 130.0513          19
 ```
 
 ```r
@@ -186,16 +164,103 @@ vif(fit2)
 
 ```
 ##           GVIF Df GVIF^(1/(2*Df))
-## hp   21.456428  1        4.632108
-## vs    7.423472  1        2.724605
-## carb 12.681439  1        3.561101
-## disp 21.894422  1        4.679148
-## qsec  8.182966  1        2.860588
-## gear 25.668180  2        2.250861
-## drat  5.099622  1        2.258234
-## am    5.910988  1        2.431252
-## wt   15.800677  1        3.975007
 ## cyl  44.446614  2        2.582020
+## disp 21.894422  1        4.679148
+## hp   21.456428  1        4.632108
+## drat  5.099622  1        2.258234
+## wt   15.800677  1        3.975007
+## qsec  8.182966  1        2.860588
+## vs    7.423472  1        2.724605
+## am    5.910988  1        2.431252
+## gear 25.668180  2        2.250861
+## carb 12.681439  1        3.561101
+```
+
+
+```r
+fit21 <- lm(mpg ~ . - disp, mtcars)
+vif21 <- as.data.frame(vif(fit21))
+vif21 %>% rownames_to_column('var') %>% filter(GVIF^(1/(2*Df)) > 3) %>%
+  column_to_rownames('var')
+```
+
+```
+##           GVIF Df GVIF^(1/(2*Df))
+## hp   19.389094  1        4.403305
+## carb  9.541618  1        3.088951
+```
+
+```r
+fit22 <- lm(mpg ~ . - wt, mtcars)
+vif22 <- as.data.frame(vif(fit22))
+vif22 %>% rownames_to_column('var') %>% filter(GVIF^(1/(2*Df)) > 3) %>%
+  column_to_rownames('var')
+```
+
+```
+##           GVIF Df GVIF^(1/(2*Df))
+## hp   21.325033  1        4.617904
+## carb  9.798614  1        3.130274
+```
+
+```r
+fit23 <- lm(mpg ~ . - carb, mtcars)
+vif23 <- as.data.frame(vif(fit23))
+vif23 %>% rownames_to_column('var') %>% filter(GVIF^(1/(2*Df)) > 3) %>%
+  column_to_rownames('var')
+```
+
+```
+##           GVIF Df GVIF^(1/(2*Df))
+## disp 16.473542  1        4.058761
+## hp    9.955196  1        3.155185
+## wt   12.208767  1        3.494105
+```
+
+```r
+fit24 <- lm(mpg ~ . - hp, mtcars)
+vif24 <- as.data.frame(vif(fit24))
+vif24 %>% rownames_to_column('var') %>% filter(GVIF^(1/(2*Df)) > 3) %>%
+  column_to_rownames('var')
+```
+
+```
+##          GVIF Df GVIF^(1/(2*Df))
+## disp 19.78489  1        4.448021
+## wt   15.70392  1        3.962817
+```
+
+```r
+fit3 <- step(fit2, trace=0)
+tidy(fit3)
+```
+
+```
+##          term  estimate std.error statistic      p.value
+## 1 (Intercept)  9.617781 6.9595930  1.381946 1.779152e-01
+## 2          wt -3.916504 0.7112016 -5.506882 6.952711e-06
+## 3        qsec  1.225886 0.2886696  4.246676 2.161737e-04
+## 4   am manual  2.935837 1.4109045  2.080819 4.671551e-02
+```
+
+```r
+glance(fit3)
+```
+
+```
+##   r.squared adj.r.squared    sigma statistic      p.value df    logLik
+## 1 0.8496636     0.8335561 2.458846  52.74964 1.210446e-11  4 -72.05969
+##        AIC      BIC deviance df.residual
+## 1 154.1194 161.4481 169.2859          28
+```
+
+```r
+sqrt(vif(fit3))
+```
+
+```
+##       wt     qsec       am 
+## 1.575738 1.168049 1.594189
 ```
 
 ## Appendix
@@ -207,16 +272,13 @@ ggplot(mtcars, aes(x=am,y=mpg)) +
 ```
 
 <div class="figure" style="text-align: center">
-<img src="reg_proj_files/figure-html/unnamed-chunk-5-1.png" alt="\label{fig:box}Box plot of MPG against transmission type."  />
+<img src="reg_proj_files/figure-html/unnamed-chunk-7-1.png" alt="\label{fig:box}Box plot of MPG against transmission type."  />
 <p class="caption">\label{fig:box}Box plot of MPG against transmission type.</p>
 </div>
 
 
 ```r
-ggpairs(mtcars, lower=list(combo=wrap('facethist',binwidth=0.8)))
+#ggpairs(mtcars, lower=list(combo=wrap('facethist',binwidth=0.8)))
 ```
 
-<div class="figure" style="text-align: center">
-<img src="reg_proj_files/figure-html/unnamed-chunk-6-1.png" alt="\label{fig:pairs}Pair plot of variables from mtcars dataset."  />
-<p class="caption">\label{fig:pairs}Pair plot of variables from mtcars dataset.</p>
-</div>
+
