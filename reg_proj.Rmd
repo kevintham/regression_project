@@ -36,9 +36,7 @@ pacman::p_load(knitr, dplyr, ggplot2, GGally, tidyr, grid, gridExtra, car, broom
 Next we import and examine the dataset (output supressed):
 
 ```{r, results='hide'}
-data(mtcars)
-head(mtcars)
-str(mtcars)
+data(mtcars); head(mtcars); str(mtcars)
 ```
 
 Some of the variables are in the wrong data type and require coercion to the correct data type: 
@@ -49,9 +47,6 @@ mtcars$vs <- factor(mtcars$vs, labels = c('V-shaped', 'straight'))
 mtcars$cyl <- ordered(mtcars$cyl)
 mtcars$gear <- ordered(mtcars$gear)
 ```
-
-We can make a direct comparison between the transmission type and MPG with a boxplot:
-
 
 
 From the boxplot in Figure \ref{fig:box} we can conclude that from the dataset, cars with a manual transmission have a larger median MPG than cars with an automatic transmission. The MPG for cars with a manual transmission also appear to have a larger spread between the first and third quartiles.
@@ -66,9 +61,7 @@ In order to visualise the relationship of MPG and transmission type with the oth
 If we are only concerned with the bulk effect of transmission type on MPG disregarding other values, we can simply regress `mpg` on `am` and examine the regression coefficients.
 
 ```{r}
-fit1 <- lm(mpg ~ am, data=mtcars)
-tidy(fit1)
-glance(fit1)
+fit1 <- lm(mpg ~ am, data=mtcars); tidy(fit1); glance(fit1)
 ```
 
 The coefficient of the linear model with only 1 variable is 7.25, with a p-value of 0.0002, indicating significance and that we should reject the null hypothesis. Therefore is a difference of 7.25 MPG between automatic and manual transmission types, neglecting adjustment for other variables. We note here that the R-squared value for this model is fairly low. This is expected as other variables that can explain the variance in MPG have not been included.
@@ -79,7 +72,7 @@ In this section we fit linear models that include the other variables. First we 
 
 ```{r}
 fit2 <- lm(mpg ~ ., data=mtcars)
-tidy(fit2)
+tidy(fit2)$p.value
 glance(fit2)
 vif(fit2)
 ```
@@ -117,13 +110,13 @@ glance(fit3)
 sqrt(vif(fit3))
 ```
 
-The remaining variables, `wt`, `qsec` and `am` have much lower collinearity and the model coefficients have significant p-values. We can therefore quantify the difference between automatic and manual transmission as 2.94 MPG, with manual transmission having greater fuel economy.
+The remaining variables, `wt`, `qsec` and `am` have much lower collinearity and the model coefficients have significant p-values. We can therefore quantify the difference between automatic and manual transmission as 2.94 MPG (standard error of 1.41), with manual transmission having greater fuel economy.
 
 Unfortunately the question of whether manual transmissions are objectively better than automatic transmissions is difficult to answer due to the collinearities present. Even though the other highly correlated variables have been removed from the model, they are still present in reality and it is difficult to conclude which one is causally better for fuel economy. 
 
 ## Summary
 
-We have quantified the difference in fuel economy between manual and automatic transmissions. Adjusting for the variables `wt` and `qsec`, manual transmissions present an increase of 2.94 MPG compared to automatic transmissions. Whether automatic or manual transmissions are better for fuel economy however is more difficult to ascertain due to correlations with other variables. 
+We have quantified the difference in fuel economy between manual and automatic transmissions. Adjusting for the variables `wt` and `qsec`, manual transmissions present an increase of 2.94 MPG with standard error of 1.41 compared to automatic transmissions. Whether automatic or manual transmissions are better for fuel economy however is more difficult to ascertain due to correlations with other variables. 
 
 \newpage
 
@@ -131,14 +124,19 @@ We have quantified the difference in fuel economy between manual and automatic t
 
 ### A - Boxplot of MPG against transmission type
 
-```{r, fig.align='center', results='hold', fig.cap='\\label{fig:box}Box plot of MPG against transmission type.'}
-ggplot(mtcars, aes(x=am,y=mpg)) +
-  geom_boxplot()
+```{r, fig.align='center', results='hold', fig.width=4, fig.height=2, fig.cap='\\label{fig:box}Box plot of MPG against transmission type.'}
+ggplot(mtcars, aes(x=am,y=mpg)) + geom_boxplot()
+```
+
+### B - Diagnostic Plot
+
+```{r, fig.align='center', results='hold', fig.width=7, fig.height=4.2, fig.cap='\\label{fig:diag}Plot of residual diagnostics. Residuals appear to follow a gaussian distribution closely.'}
+par(mfrow=c(2,2), mar=c(2,2,2,2)); plot(fit3)
 ```
 
 \newpage
 
-### B - Pairplot of variables in mtcars dataset
+### C - Pairplot of variables in mtcars dataset
 
 ```{r, fig.align='center', fig.width=10, fig.height=10, results='hold', fig.cap='\\label{fig:pairs}Pair plot of variables from mtcars dataset.'}
 ggpairs(mtcars, lower=list(combo=wrap('facethist',binwidth=0.8)))

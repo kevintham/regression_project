@@ -34,9 +34,7 @@ Next we import and examine the dataset (output supressed):
 
 
 ```r
-data(mtcars)
-head(mtcars)
-str(mtcars)
+data(mtcars); head(mtcars); str(mtcars)
 ```
 
 Some of the variables are in the wrong data type and require coercion to the correct data type: 
@@ -48,9 +46,6 @@ mtcars$vs <- factor(mtcars$vs, labels = c('V-shaped', 'straight'))
 mtcars$cyl <- ordered(mtcars$cyl)
 mtcars$gear <- ordered(mtcars$gear)
 ```
-
-We can make a direct comparison between the transmission type and MPG with a boxplot:
-
 
 
 From the boxplot in Figure \ref{fig:box} we can conclude that from the dataset, cars with a manual transmission have a larger median MPG than cars with an automatic transmission. The MPG for cars with a manual transmission also appear to have a larger spread between the first and third quartiles.
@@ -66,18 +61,13 @@ If we are only concerned with the bulk effect of transmission type on MPG disreg
 
 
 ```r
-fit1 <- lm(mpg ~ am, data=mtcars)
-tidy(fit1)
+fit1 <- lm(mpg ~ am, data=mtcars); tidy(fit1); glance(fit1)
 ```
 
 ```
 ##          term  estimate std.error statistic      p.value
 ## 1 (Intercept) 17.147368  1.124603 15.247492 1.133983e-15
 ## 2   am manual  7.244939  1.764422  4.106127 2.850207e-04
-```
-
-```r
-glance(fit1)
 ```
 
 ```
@@ -96,24 +86,13 @@ In this section we fit linear models that include the other variables. First we 
 
 ```r
 fit2 <- lm(mpg ~ ., data=mtcars)
-tidy(fit2)
+tidy(fit2)$p.value
 ```
 
 ```
-##           term    estimate   std.error  statistic    p.value
-## 1  (Intercept) 15.73289830 16.55441672  0.9503747 0.35385548
-## 2        cyl.L  2.16015247  3.41523225  0.6325053 0.53459525
-## 3        cyl.Q  2.22646814  1.43686806  1.5495286 0.13775130
-## 4         disp  0.01256810  0.01774024  0.7084518 0.48726645
-## 5           hp -0.05711722  0.03174603 -1.7991927 0.08789210
-## 6         drat  0.73576811  1.98461241  0.3707364 0.71493502
-## 7           wt -3.54511861  1.90895437 -1.8570997 0.07886857
-## 8         qsec  0.76801287  0.75221895  1.0209964 0.32008122
-## 9   vsstraight  2.48849171  2.54014636  0.9796647 0.33956206
-## 10   am manual  3.34735713  2.28948094  1.4620594 0.16006890
-## 11      gear.L  0.75274795  2.14062152  0.3516492 0.72897110
-## 12      gear.Q  1.25045717  1.80854870  0.6914147 0.49766706
-## 13        carb  0.78702815  1.03599487  0.7596834 0.45676696
+##  [1] 0.35385548 0.53459525 0.13775130 0.48726645 0.08789210 0.71493502
+##  [7] 0.07886857 0.32008122 0.33956206 0.16006890 0.72897110 0.49766706
+## [13] 0.45676696
 ```
 
 ```r
@@ -185,13 +164,13 @@ sqrt(vif(fit3))
 ## 1.575738 1.168049 1.594189
 ```
 
-The remaining variables, `wt`, `qsec` and `am` have much lower collinearity and the model coefficients have significant p-values. We can therefore quantify the difference between automatic and manual transmission as 2.94 MPG, with manual transmission having greater fuel economy.
+The remaining variables, `wt`, `qsec` and `am` have much lower collinearity and the model coefficients have significant p-values. We can therefore quantify the difference between automatic and manual transmission as 2.94 MPG (standard error of 1.41), with manual transmission having greater fuel economy.
 
 Unfortunately the question of whether manual transmissions are objectively better than automatic transmissions is difficult to answer due to the collinearities present. Even though the other highly correlated variables have been removed from the model, they are still present in reality and it is difficult to conclude which one is causally better for fuel economy. 
 
 ## Summary
 
-We have quantified the difference in fuel economy between manual and automatic transmissions. Adjusting for the variables `wt` and `qsec`, manual transmissions present an increase of 2.94 MPG compared to automatic transmissions. Whether automatic or manual transmissions are better for fuel economy however is more difficult to ascertain due to correlations with other variables. 
+We have quantified the difference in fuel economy between manual and automatic transmissions. Adjusting for the variables `wt` and `qsec`, manual transmissions present an increase of 2.94 MPG with standard error of 1.41 compared to automatic transmissions. Whether automatic or manual transmissions are better for fuel economy however is more difficult to ascertain due to correlations with other variables. 
 
 \newpage
 
@@ -201,8 +180,7 @@ We have quantified the difference in fuel economy between manual and automatic t
 
 
 ```r
-ggplot(mtcars, aes(x=am,y=mpg)) +
-  geom_boxplot()
+ggplot(mtcars, aes(x=am,y=mpg)) + geom_boxplot()
 ```
 
 <div class="figure" style="text-align: center">
@@ -210,9 +188,21 @@ ggplot(mtcars, aes(x=am,y=mpg)) +
 <p class="caption">\label{fig:box}Box plot of MPG against transmission type.</p>
 </div>
 
+### B - Diagnostic Plot
+
+
+```r
+par(mfrow=c(2,2), mar=c(2,2,2,2)); plot(fit3)
+```
+
+<div class="figure" style="text-align: center">
+<img src="reg_proj_files/figure-html/unnamed-chunk-9-1.png" alt="\label{fig:diag}Plot of residual diagnostics. Residuals appear to follow a gaussian distribution closely."  />
+<p class="caption">\label{fig:diag}Plot of residual diagnostics. Residuals appear to follow a gaussian distribution closely.</p>
+</div>
+
 \newpage
 
-### B - Pairplot of variables in mtcars dataset
+### C - Pairplot of variables in mtcars dataset
 
 
 ```r
@@ -220,6 +210,6 @@ ggpairs(mtcars, lower=list(combo=wrap('facethist',binwidth=0.8)))
 ```
 
 <div class="figure" style="text-align: center">
-<img src="reg_proj_files/figure-html/unnamed-chunk-9-1.png" alt="\label{fig:pairs}Pair plot of variables from mtcars dataset."  />
+<img src="reg_proj_files/figure-html/unnamed-chunk-10-1.png" alt="\label{fig:pairs}Pair plot of variables from mtcars dataset."  />
 <p class="caption">\label{fig:pairs}Pair plot of variables from mtcars dataset.</p>
 </div>
