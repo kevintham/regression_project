@@ -1,7 +1,7 @@
 ---
 title: "Efficiency comparisons between car transmission types"
 author: "Kevin Tham"
-date: "May 12, 2018"
+date: "May 15, 2018"
 output: 
   html_document:
     keep_md: true
@@ -30,41 +30,13 @@ if (!require("pacman"))
 pacman::p_load(knitr, dplyr, ggplot2, GGally, tidyr, grid, gridExtra, car, broom, tibble)
 ```
 
-Next we import and examine the dataset:
+Next we import and examine the dataset (output supressed):
 
 
 ```r
 data(mtcars)
 head(mtcars)
-```
-
-```
-##                    mpg cyl disp  hp drat    wt  qsec vs am gear carb
-## Mazda RX4         21.0   6  160 110 3.90 2.620 16.46  0  1    4    4
-## Mazda RX4 Wag     21.0   6  160 110 3.90 2.875 17.02  0  1    4    4
-## Datsun 710        22.8   4  108  93 3.85 2.320 18.61  1  1    4    1
-## Hornet 4 Drive    21.4   6  258 110 3.08 3.215 19.44  1  0    3    1
-## Hornet Sportabout 18.7   8  360 175 3.15 3.440 17.02  0  0    3    2
-## Valiant           18.1   6  225 105 2.76 3.460 20.22  1  0    3    1
-```
-
-```r
 str(mtcars)
-```
-
-```
-## 'data.frame':	32 obs. of  11 variables:
-##  $ mpg : num  21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 ...
-##  $ cyl : num  6 6 4 6 8 6 8 4 4 6 ...
-##  $ disp: num  160 160 108 258 360 ...
-##  $ hp  : num  110 110 93 110 175 105 245 62 95 123 ...
-##  $ drat: num  3.9 3.9 3.85 3.08 3.15 2.76 3.21 3.69 3.92 3.92 ...
-##  $ wt  : num  2.62 2.88 2.32 3.21 3.44 ...
-##  $ qsec: num  16.5 17 18.6 19.4 17 ...
-##  $ vs  : num  0 0 1 1 0 1 0 1 1 1 ...
-##  $ am  : num  1 1 1 0 0 0 0 0 0 0 ...
-##  $ gear: num  4 4 4 3 3 3 3 4 4 4 ...
-##  $ carb: num  4 4 1 1 2 1 4 2 2 4 ...
 ```
 
 Some of the variables are in the wrong data type and require coercion to the correct data type: 
@@ -83,11 +55,7 @@ We can make a direct comparison between the transmission type and MPG with a box
 
 From the boxplot in Figure \ref{fig:box} we can conclude that from the dataset, cars with a manual transmission have a larger median MPG than cars with an automatic transmission. The MPG for cars with a manual transmission also appear to have a larger spread between the first and third quartiles.
 
-In order to visualise the relationship of MPG and transmission type with the other variables we can utilise a pairplot, shown in Figure \ref{fig:pairs}. From the pairplot we can observe that many of the variables are fairly correlated with each other. 
-
-In particular, we can see how the nominal variables clearly separate some of the numerical variables. For example, the variable `cyl`, the number of cylinders in the car engine, splits the variables `disp`, `hp` and `drat` into distinct groups. The transmission type `am` also splits `disp`, `hp` and `drat` into two groups. Now if `am` is correlated with some of the other variables, which one actually is the variable responsible for the effect on MPG? Or are they all equally responsible?
-
-This suggests that it will be difficult to intepret linear regression results to answer question 2 due to confounding variables.
+In order to visualise the relationship of MPG and transmission type with the other variables we can utilise a pairplot, shown in Figure \ref{fig:pairs}. From the pairplot we can observe that many of the variables are fairly correlated with each other. This suggests that it will be difficult to intepret linear regression results to answer question 2 due to confounding variables.
 
 
 ## Statistical Analysis
@@ -123,6 +91,7 @@ The coefficient of the linear model with only 1 variable is 7.25, with a p-value
 
 ### Linear Model with multiple variables
 
+In this section we fit linear models that include the other variables. First we will try fitting a model with all the variables.
 
 
 ```r
@@ -176,59 +145,12 @@ vif(fit2)
 ## carb 12.681439  1        3.561101
 ```
 
+We can see from the model `fit2` that even though the R-squared and p-value for the model is fairly high and low, at 0.885 and 1.76e-06 respectively, the p-values for each coefficient are all above 0.05. From the data exploration section, we recall that high levels of correlation exists among some of the variables. The generalised variance of inflation (GVIF) values confirm this finding that there is collinearity/multicollinearity present: four of the variables exhibit $GVIF^{\frac{1}{2Df}}$ values larger than $3$. Note that we compare $GVIF^{\frac{1}{2Df}}$ with $\sqrt{VIF}$; the GVIF value is corrected for the degrees of freedom of the variables $Df$, which would be $1$ for numerical and $\geq 1$ for categorical variables. 
 
-```r
-fit21 <- lm(mpg ~ . - disp, mtcars)
-vif21 <- as.data.frame(vif(fit21))
-vif21 %>% rownames_to_column('var') %>% filter(GVIF^(1/(2*Df)) > 3) %>%
-  column_to_rownames('var')
-```
 
-```
-##           GVIF Df GVIF^(1/(2*Df))
-## hp   19.389094  1        4.403305
-## carb  9.541618  1        3.088951
-```
 
-```r
-fit22 <- lm(mpg ~ . - wt, mtcars)
-vif22 <- as.data.frame(vif(fit22))
-vif22 %>% rownames_to_column('var') %>% filter(GVIF^(1/(2*Df)) > 3) %>%
-  column_to_rownames('var')
-```
+To improve upon this model we conduct stepwise regression with the AIC used to judge relative model quality. 
 
-```
-##           GVIF Df GVIF^(1/(2*Df))
-## hp   21.325033  1        4.617904
-## carb  9.798614  1        3.130274
-```
-
-```r
-fit23 <- lm(mpg ~ . - carb, mtcars)
-vif23 <- as.data.frame(vif(fit23))
-vif23 %>% rownames_to_column('var') %>% filter(GVIF^(1/(2*Df)) > 3) %>%
-  column_to_rownames('var')
-```
-
-```
-##           GVIF Df GVIF^(1/(2*Df))
-## disp 16.473542  1        4.058761
-## hp    9.955196  1        3.155185
-## wt   12.208767  1        3.494105
-```
-
-```r
-fit24 <- lm(mpg ~ . - hp, mtcars)
-vif24 <- as.data.frame(vif(fit24))
-vif24 %>% rownames_to_column('var') %>% filter(GVIF^(1/(2*Df)) > 3) %>%
-  column_to_rownames('var')
-```
-
-```
-##          GVIF Df GVIF^(1/(2*Df))
-## disp 19.78489  1        4.448021
-## wt   15.70392  1        3.962817
-```
 
 ```r
 fit3 <- step(fit2, trace=0)
@@ -263,7 +185,19 @@ sqrt(vif(fit3))
 ## 1.575738 1.168049 1.594189
 ```
 
+The remaining variables, `wt`, `qsec` and `am` have much lower collinearity and the model coefficients have significant p-values. We can therefore quantify the difference between automatic and manual transmission as 2.94 MPG, with manual transmission having greater fuel economy.
+
+Unfortunately the question of whether manual transmissions are objectively better than automatic transmissions is difficult to answer due to the collinearities present. Even though the other highly correlated variables have been removed from the model, they are still present in reality and it is difficult to conclude which one is causally better for fuel economy. 
+
+## Summary
+
+We have quantified the difference in fuel economy between manual and automatic transmissions. Adjusting for the variables `wt` and `qsec`, manual transmissions present an increase of 2.94 MPG compared to automatic transmissions. Whether automatic or manual transmissions are better for fuel economy however is more difficult to ascertain due to correlations with other variables. 
+
+\newpage
+
 ## Appendix
+
+### A - Boxplot of MPG against transmission type
 
 
 ```r
@@ -272,13 +206,20 @@ ggplot(mtcars, aes(x=am,y=mpg)) +
 ```
 
 <div class="figure" style="text-align: center">
-<img src="reg_proj_files/figure-html/unnamed-chunk-7-1.png" alt="\label{fig:box}Box plot of MPG against transmission type."  />
+<img src="reg_proj_files/figure-html/unnamed-chunk-8-1.png" alt="\label{fig:box}Box plot of MPG against transmission type."  />
 <p class="caption">\label{fig:box}Box plot of MPG against transmission type.</p>
 </div>
 
+\newpage
+
+### B - Pairplot of variables in mtcars dataset
+
 
 ```r
-#ggpairs(mtcars, lower=list(combo=wrap('facethist',binwidth=0.8)))
+ggpairs(mtcars, lower=list(combo=wrap('facethist',binwidth=0.8)))
 ```
 
-
+<div class="figure" style="text-align: center">
+<img src="reg_proj_files/figure-html/unnamed-chunk-9-1.png" alt="\label{fig:pairs}Pair plot of variables from mtcars dataset."  />
+<p class="caption">\label{fig:pairs}Pair plot of variables from mtcars dataset.</p>
+</div>
